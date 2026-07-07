@@ -1,0 +1,14 @@
+REPLACE ME.
+
+Reusable line-art SVG icons used inside the app for:
+  - Learning module cards (MCQ, Case, OPD, Education)
+  - Specialty categories (Cardio, Resp, Neuro …)
+  - Achievements + badges
+
+Each icon should be:
+  - 24 × 24 viewport
+  - single-path where possible
+  - currentColor stroke
+  - accessible (aria-label attribute in usage)
+
+Naming: kebab-case, purpose-first — e.g. mcq.svg, opd.svg, specialty-cardio.svg.

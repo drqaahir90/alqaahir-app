@@ -1,0 +1,2 @@
+# Cloudflare Pages / Netlify SPA rewrite — all non-file requests fall back to index.html.
+/*    /index.html   200

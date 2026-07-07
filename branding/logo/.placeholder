@@ -1,0 +1,11 @@
+REPLACE ME.
+
+Expected files:
+  qcap-logo-full.svg          Full horizontal logo (mark + wordmark)
+  qcap-logo-full-dark.svg     Full logo — dark-mode variant (light strokes)
+  qcap-logo-full-light.svg    Full logo — light-mode variant (dark strokes)
+  qcap-logo-mark.svg          Icon-only variant (square, ≥ 512 × 512 viewport)
+  qcap-logo-mono.svg          Single-colour variant for embossing / stamping
+  qcap-logo-full.png          Raster export at 2× density for social sharing
+
+Colour: brand primary #0d9488, accent #14b8a6.

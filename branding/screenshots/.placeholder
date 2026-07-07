@@ -1,0 +1,13 @@
+REPLACE ME.
+
+Store / manifest screenshots for install prompts and marketing.
+
+Expected files:
+  qcap-screenshot-home-mobile.png       1080 × 2340 (Android portrait)
+  qcap-screenshot-opd-mobile.png        1080 × 2340
+  qcap-screenshot-leaderboard-mobile.png 1080 × 2340
+  qcap-screenshot-home-desktop.png      1920 × 1080
+  qcap-screenshot-admin-desktop.png     1920 × 1080
+
+These may be referenced from manifest.webmanifest → screenshots[] to make
+the Chrome install dialog show a full-app preview.

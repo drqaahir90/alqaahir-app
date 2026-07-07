@@ -1,0 +1,19 @@
+REPLACE ME.
+
+PWA / iOS splash screens shown during app launch.
+
+iOS splash size matrix (portrait):
+  qcap-splash-1290x2796.png    iPhone 15 Pro Max
+  qcap-splash-1179x2556.png    iPhone 15 / 15 Pro
+  qcap-splash-1170x2532.png    iPhone 12/13/14 (Pro)
+  qcap-splash-1080x2340.png    Android (density-adaptive)
+  qcap-splash-2048x2732.png    iPad Pro 12.9"
+  qcap-splash-1668x2388.png    iPad Pro 11"
+
+Design rules:
+  - Background: brand-dark #0f172a
+  - Centred mark at ~30 % of the shortest edge
+  - Do not include text (renders differently across devices)
+
+Android reads splash from `manifest.webmanifest → background_color`
+and `theme_color` — no per-device assets required.

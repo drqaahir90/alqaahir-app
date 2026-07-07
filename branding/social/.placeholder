@@ -1,0 +1,14 @@
+REPLACE ME.
+
+Open Graph + Twitter card images for link previews on social networks
+and messaging apps.
+
+Expected files:
+  qcap-og-1200x630.png          1200 × 630 (Facebook, WhatsApp, Slack, LinkedIn)
+  qcap-og-1200x630-dark.png     Alt variant for dark-mode preview clients
+  qcap-twitter-summary-1200x600.png    Twitter summary_large_image
+
+Content guidance:
+  - Full QCAP wordmark on brand-primary background.
+  - Sub-tagline: "Master Clinical Medicine — MCQs · Case-Based Learning · OPD Simulator"
+  - Keep 100 px safe margin on every edge (Twitter crops).

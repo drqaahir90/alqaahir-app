@@ -1,0 +1,62 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update: if signedIn() &&
+        (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /mcqs/{doc} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /caseStudies/{doc} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /opdCases/{doc} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /educationArticles/{doc} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /subjects/{doc} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /notifications/{doc} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /siteSettings/{doc} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

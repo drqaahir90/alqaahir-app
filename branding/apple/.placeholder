@@ -1,0 +1,12 @@
+REPLACE ME.
+
+Expected files:
+  qcap-apple-touch-180.png   180 × 180 (iPhone / iPad, default)
+  qcap-apple-touch-152.png   152 × 152 (iPad old)
+  qcap-apple-touch-120.png   120 × 120 (iPhone old)
+
+Design rules:
+  - Solid rounded-square background (do not use transparency — iOS shows
+    a black background where transparent pixels exist).
+  - Safe area: keep artwork within the central 80 % of the canvas.
+  - Colour: brand primary #0d9488 with white mark inset.

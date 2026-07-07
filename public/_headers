@@ -1,0 +1,26 @@
+# Cloudflare Pages / Netlify HTTP headers
+# Applied at edge — improves security and cacheability.
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(self)
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+# Long-cache hashed static assets
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Service worker: must not be cached long
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+  Service-Worker-Allowed: /
+
+# Manifest and icons
+/manifest.webmanifest
+  Content-Type: application/manifest+json
+  Cache-Control: public, max-age=3600
+
+/icon.svg
+  Cache-Control: public, max-age=86400

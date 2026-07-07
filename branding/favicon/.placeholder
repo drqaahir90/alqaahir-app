@@ -1,0 +1,9 @@
+REPLACE ME.
+
+Expected files:
+  qcap-favicon.svg      Preferred (scalable, tiny)
+  qcap-favicon.ico      Legacy .ico containing 16/32/48 px raster fallback
+  qcap-favicon-32.png   32 × 32 fallback for older browsers
+
+Once these files are placed here, copy the SVG to public/icon.svg so it
+ships in the build, or override at runtime via Admin → Branding Manager.

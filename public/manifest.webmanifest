@@ -1,0 +1,27 @@
+{
+  "name": "QCAP · Qaahir Clinical Academy",
+  "short_name": "QCAP",
+  "description": "Master clinical medicine — MCQs, case-based learning, and OPD simulator for medical students and healthcare professionals.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0d9488",
+  "lang": "en",
+  "dir": "auto",
+  "categories": ["education", "medical", "productivity", "health"],
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "./icon.svg",     "sizes": "any",     "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png",     "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png",     "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "MCQ Bank",       "url": "./#/mcq",     "icons": [{ "src": "./icon.svg", "sizes": "any" }] },
+    { "name": "OPD Simulator",  "url": "./#/opd",     "icons": [{ "src": "./icon.svg", "sizes": "any" }] },
+    { "name": "Case Studies",   "url": "./#/cases",   "icons": [{ "src": "./icon.svg", "sizes": "any" }] },
+    { "name": "Friends",        "url": "./#/friends", "icons": [{ "src": "./icon.svg", "sizes": "any" }] }
+  ]
+}

@@ -1,0 +1,12 @@
+REPLACE ME.
+
+Only place font files here that are licensed for embedding.
+
+If licensed:
+  qcap-heading.woff2         Display / headings
+  qcap-body.woff2            Body copy
+  qcap-mono.woff2            Numeric / code
+  LICENSE                    Full font licence text (MANDATORY)
+
+Otherwise (recommended default), QCAP uses the system font stack — no files
+required.
