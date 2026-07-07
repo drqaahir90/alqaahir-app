@@ -1,4 +1,4 @@
-name: Build Android APK
+ name: Build Android APK
 
 on:
   push:
@@ -11,11 +11,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-     - name: Setup Node.js
-  uses: actions/setup-node@v4
-  with:
-    node-version: "22.x"
-    check-latest: true
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          check-latest: true
 
       - run: npm install
 
@@ -33,7 +35,8 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
           name: AlQaahir-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
