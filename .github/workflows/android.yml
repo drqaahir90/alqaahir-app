@@ -1,3 +1,4 @@
+
 name: Build Android APK
 
 on:
@@ -17,29 +18,29 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build Web
-        run: npm run build
-
-      - name: Install Capacitor
-        run: npm install @capacitor/core @capacitor/cli @capacitor/android
-
-      - name: Sync Android
-        run: npx cap sync android
+          node-version: 22
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: 21
+
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Web
+        run: npm run build
+
+      - name: Sync Capacitor
+        run: npx cap sync android
 
       - name: Build APK
+        working-directory: android
         run: |
-          cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
