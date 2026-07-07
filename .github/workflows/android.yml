@@ -1,4 +1,4 @@
- name: Build Android APK
+name: Build Android APK
 
 on:
   push:
@@ -11,23 +11,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "22.x"
-          check-latest: true
+          node-version: "22"
 
-      - run: npm install
+      - name: Install dependencies
+        run: npm install
 
-      - run: npm run build
+      - name: Build Web
+        run: npm run build
 
-      - run: npm install @capacitor/core @capacitor/cli @capacitor/android
+      - name: Install Capacitor
+        run: npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      - run: npx cap sync android
+      - name: Sync Android
+        run: npx cap sync android
 
-      - uses: android-actions/setup-android@v3
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
 
       - name: Build APK
         run: |
