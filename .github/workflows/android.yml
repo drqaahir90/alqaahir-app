@@ -2,17 +2,14 @@ name: Build Android APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Create google-services.json
         run: |
@@ -22,16 +19,13 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '22'
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 21
-
-      - name: Install Android SDK
-        uses: android-actions/setup-android@v3
+          distribution: 'temurin'
+          java-version: '21'
 
       - name: Install dependencies
         run: npm ci
@@ -53,3 +47,4 @@ jobs:
         with:
           name: AlQaahir-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          
