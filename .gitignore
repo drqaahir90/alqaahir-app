@@ -50,3 +50,4 @@ coverage/
 
 # OS files
 Thumbs.db
+android/app/google-services.json
