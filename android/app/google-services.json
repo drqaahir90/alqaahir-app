@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "618455181425",
+    "firebase_url": "https://qcap-platform-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "qcap-platform",
+    "storage_bucket": "qcap-platform.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:618455181425:android:64ddb1a3b9fb335dc453d0",
+        "android_client_info": {
+          "package_name": "com.alqaahir.academy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA4Duc3tsxhopbFVowdFy-K4QW_jqzcVe0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
