@@ -9,7 +9,7 @@ public class MainActivity extends BridgeActivity {
         if (this.bridge != null && this.bridge.getWebView() != null && this.bridge.getWebView().canGoBack()) {
             this.bridge.getWebView().goBack();
         } else {
-            finishAffinity();
+            finishAndRemoveTask();
             System.exit(0);
         }
     }
