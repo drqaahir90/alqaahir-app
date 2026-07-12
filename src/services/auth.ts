@@ -1,17 +1,4 @@
-/**
- * Auth service — Firebase Authentication when configured, otherwise a
- * localStorage-backed demo auth that mirrors the same contract.
- *
- * ─── Permanent super-admin ──────────────────────────────────────────
- * Dr. Qaahir (dr.qaahir90@gmail.com) is the platform's owner account.
- * The account is:
- *   • Seeded automatically on first launch (demo mode)
- *   • Auto-provisioned on first Firebase sign-in with the correct email
- *   • Protected: no admin action can downgrade or delete this account
- *   • Always granted role: "admin" and status: "active"
- * See `PROTECTED_ADMIN_EMAIL` below.
- */
-import { auth, isFirebaseConfigured } from "@/config/firebase";
+import { auth, isFirebaseConfigured, db } from "@/config/firebase";
 import {
   createUserWithEmailAndPassword, signInWithEmailAndPassword,
   onAuthStateChanged, signOut, updateProfile,
@@ -24,7 +11,6 @@ const LS_USER = "medacad.auth.user";
 const LS_USERS = "medacad.auth.users";
 const LS_ADMINS = "medacad.auth.admins";
 
-/** Protected super-admin (Dr. Qaahir). Cannot be demoted or deleted. */
 export const PROTECTED_ADMIN_EMAIL = "dr.qaahir90@gmail.com";
 const PROTECTED_ADMIN_UID = "admin_qaahir_super";
 const PROTECTED_ADMIN_PASSWORD = "Kingsadam36";
@@ -47,14 +33,13 @@ function loadUsers(): StoredUser[] {
 }
 function saveUsers(u: StoredUser[]) { localStorage.setItem(LS_USERS, JSON.stringify(u)); }
 
-/** Owner email list persisted so it survives sessions. Includes the super-admin. */
 function adminEmails(): string[] {
   let stored: string[] = [];
   try { stored = JSON.parse(localStorage.getItem(LS_ADMINS) || "[]"); } catch { /* empty */ }
   const set = new Set<string>(stored.map((e) => e.toLowerCase()));
   set.add(PROTECTED_ADMIN_EMAIL.toLowerCase());
-  set.add("admin@qcap.io");         // legacy demo admin
-  set.add("admin@medacademy.io");   // legacy demo admin
+  set.add("admin@qcap.io");         
+  set.add("admin@medacademy.io");   
   return Array.from(set);
 }
 function isAdminEmail(email: string): boolean {
@@ -63,48 +48,22 @@ function isAdminEmail(email: string): boolean {
 
 async function ensureUserDoc(u: AppUser): Promise<AppUser> {
   let existing: AppUser | null;
-  try {
-    existing = await dbService.get<AppUser>("users", u.uid);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error("[ensureUserDoc] Failed to read existing user doc:", err);
-    throw err;
-  }
+  try { existing = await dbService.get<AppUser>("users", u.uid); } catch (err) { throw err; }
 
   const merged: AppUser = existing ? { ...existing, ...u, role: existing.role || u.role } : u;
-  // Always enforce super-admin role.
   if (isProtectedAdmin(merged)) {
     merged.role = "admin";
     merged.status = "active";
   }
 
   if (!existing) {
-    try {
-      await dbService.set("users", u.uid, merged);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error(
-        "[ensureUserDoc] Failed to CREATE user doc — Firebase Auth user exists " +
-        "but /users/{uid} was NOT written. Check Firestore security rules and " +
-        "the payload below for issues:",
-        { uid: u.uid, payload: merged },
-        err,
-      );
-      throw err;
-    }
+    try { await dbService.set("users", u.uid, merged); } catch (err) { throw err; }
   } else if (existing.role !== merged.role || existing.status !== merged.status) {
-    try {
-      await dbService.update("users", u.uid, { role: merged.role, status: merged.status });
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("[ensureUserDoc] Failed to update user role/status:", err);
-      throw err;
-    }
+    try { await dbService.update("users", u.uid, { role: merged.role, status: merged.status }); } catch (err) { throw err; }
   }
   return merged;
 }
 
-/** Seed the protected admin into local-mode storage on first launch. */
 function seedProtectedAdminLocal() {
   const users = loadUsers();
   if (users.some((u) => u.email.toLowerCase() === PROTECTED_ADMIN_EMAIL.toLowerCase())) return;
@@ -120,7 +79,6 @@ function seedProtectedAdminLocal() {
   saveUsers(users);
 }
 
-/** Ensure the super-admin user document exists (called at boot). */
 export async function ensureProtectedAdminDoc(): Promise<void> {
   const existing = await dbService.get<AppUser>("users", PROTECTED_ADMIN_UID);
   if (!existing) {
@@ -137,7 +95,6 @@ export async function ensureProtectedAdminDoc(): Promise<void> {
     };
     await dbService.set("users", PROTECTED_ADMIN_UID, u);
   } else if (existing.role !== "admin" || existing.status === "banned" || existing.status === "disabled" || existing.status === "deleted") {
-    // Self-heal: never allow the super-admin to be locked out.
     await dbService.update("users", PROTECTED_ADMIN_UID, { role: "admin", status: "active" });
   }
   if (!isFirebaseConfigured) seedProtectedAdminLocal();
@@ -152,23 +109,16 @@ export const authService = {
     if (isFirebaseConfigured && auth) {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       if (cred.user && username) {
-        try { await updateProfile(cred.user, { displayName: username }); }
-        catch (err) { /* eslint-disable-next-line no-console */ console.warn("[register] updateProfile failed:", err); }
+        try { await updateProfile(cred.user, { displayName: username }); } catch (err) { }
       }
-      // Send Firebase verification email (owner is auto-verified).
       if (cred.user && !isProtectedAdmin({ email })) {
-        try { await sendEmailVerification(cred.user); }
-        catch (err) { /* eslint-disable-next-line no-console */ console.warn("[register] sendEmailVerification failed:", err); }
+        try { await sendEmailVerification(cred.user); } catch (err) { }
       }
-      // Build the AppUser payload. Note: any optional field left undefined
-      // (e.g. `whatsapp`, `photoURL`) would otherwise be rejected by Firestore
-      // — this is handled by (a) `ignoreUndefinedProperties: true` on the
-      // Firestore instance and (b) `stripInvalid()` in dbService.
       const u: AppUser = {
         uid: cred.user.uid,
         email,
         username,
-        whatsapp: whatsapp || "",       // never persist `undefined`
+        whatsapp: whatsapp || "",       
         role,
         createdAt: Date.now(),
         bookmarks: [],
@@ -177,13 +127,25 @@ export const authService = {
         status: "active",
         language: "en",
       };
-      // Await the Firestore write. If this throws, the caller sees the real
-      // error — the auth user will exist but the profile doc is missing, which
-      // is exactly the failure mode we want to surface (not silently swallow).
       const saved = await ensureUserDoc(u);
+
+      if (db) {
+        try {
+          const { collection, addDoc } = await import("firebase/firestore");
+          await addDoc(collection(db, "notifications"), {
+            userId: cred.user.uid,
+            title: "مرحباً بك في QCAP! 🎉",
+            message: `أهلاً بك يا ${username}! نحن سعداء جداً بانضمامك إلينا ورحلتك التعليمية المتميزة تبدأ الآن. يرجى العلم أنه تم إرسال رابط تأكيد الحساب (Verified) إلى بريدك الإلكتروني. إذا لم تجد الرسالة في البريد الوارد، يرجى التحقق فوراً من مجلد البريد غير المرغوب فيه (Spam). بالتوفيق!`,
+            isRead: false,
+            createdAt: Date.now(),
+            type: "welcome"
+          });
+        } catch (notifErr) { }
+      }
+
       return saved;
     }
-    // local mode
+    
     seedProtectedAdminLocal();
     const users = loadUsers();
     if (users.some((x) => x.email.toLowerCase() === email.toLowerCase())) throw new Error("Email already registered.");
@@ -203,7 +165,6 @@ export const authService = {
       const cred = await signInWithEmailAndPassword(auth, emailOrUsername, password);
       const existing = await dbService.get<AppUser>("users", cred.user.uid);
       if (existing) {
-        // Enforce super-admin role on every login (even if a rogue write demoted them).
         if (isProtectedAdmin(existing)) {
           if (existing.role !== "admin" || existing.status !== "active") {
             await dbService.update("users", existing.uid, { role: "admin", status: "active" });
@@ -212,11 +173,6 @@ export const authService = {
         }
         return existing;
       }
-      // Auth user exists but has no /users/{uid} doc — this is exactly the
-      // broken state that a failed registration write leaves behind.
-      // Repair it on-the-fly by creating the missing doc.
-      // eslint-disable-next-line no-console
-      console.warn("[login] No /users/" + cred.user.uid + " document found — creating it now.");
       const u: AppUser = {
         uid: cred.user.uid,
         email: cred.user.email || emailOrUsername,
@@ -232,7 +188,6 @@ export const authService = {
       };
       return await ensureUserDoc(u);
     }
-    // local mode
     seedProtectedAdminLocal();
     const users = loadUsers();
     const found = users.find((u) => (u.email.toLowerCase() === emailOrUsername.toLowerCase() || u.username === emailOrUsername) && u.password === password);
@@ -265,10 +220,6 @@ export const authService = {
             }
             return cb(existing);
           }
-          // No profile doc — repair it (handles apps left in the broken state
-          // by an older build that failed the write during registration).
-          // eslint-disable-next-line no-console
-          console.warn("[onAuthStateChanged] No /users/" + fu.uid + " document found — creating it now.");
           const u: AppUser = {
             uid: fu.uid,
             email: fu.email || "",
@@ -285,8 +236,6 @@ export const authService = {
           await ensureUserDoc(u);
           cb(u);
         } catch (err) {
-          // eslint-disable-next-line no-console
-          console.error("[onAuthStateChanged] Failed to load/repair user doc:", err);
           cb(null);
         }
       });
@@ -310,7 +259,6 @@ export const authService = {
     }
   },
 
-  /** Send / resend a Firebase email-verification link. No-op in demo mode. */
   async resendVerification(): Promise<boolean> {
     if (!isFirebaseConfigured || !auth?.currentUser) return false;
     try {
@@ -319,20 +267,16 @@ export const authService = {
     } catch { return false; }
   },
 
-  /** Send a Firebase password-reset email. */
   async resetPassword(email: string): Promise<boolean> {
     if (!isFirebaseConfigured || !auth) throw new Error("Password reset requires Firebase.");
     try {
       await sendPasswordResetEmail(auth, email);
       return true;
-    } catch (e) {
-      throw e;
-    }
+    } catch (e) { throw e; }
   },
 
-  /** True when the current Firebase user has a verified email. */
   isEmailVerified(): boolean {
-    if (!isFirebaseConfigured || !auth?.currentUser) return true; // demo mode = pass-through
+    if (!isFirebaseConfigured || !auth?.currentUser) return true; 
     return !!auth.currentUser.emailVerified;
   },
 };
