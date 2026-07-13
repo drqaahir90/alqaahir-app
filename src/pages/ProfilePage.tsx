@@ -6,81 +6,87 @@ import { dbService } from "@/services/db";
 import { storageService } from "@/services/storage";
 import { useAuthStore, useUIStore } from "@/stores";
 import type { EducationArticle, Lang, QuizResult } from "@/types";
-import { useTheme, type ThemeMode } from "@/theme";
-import { isSoundEnabled, setSoundEnabled, getSfxVolume, setSfxVolume } from "@/utils/sound";
-import { useMusic } from "@/audio/MusicProvider";
-import { ContinueLearning } from "@/components/profile/ContinueLearning";
-import { Achievements } from "@/components/profile/Achievements";
-import { LearningStats } from "@/components/profile/LearningStats";
-import { currentPermission, getPrefs, notifCategories, requestPermission, setPrefs, type NotifCategory } from "@/services/notifications";
+import { useTheme } from "@/theme";
 import { cn } from "@/utils/cn";
 
 export default function ProfilePage() {
   const { t, tr, setLang } = useI18n();
   const nav = useNavigate();
   const { mode, setMode } = useTheme();
-  const music = useMusic();
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const logout = useAuthStore((s) => s.logout);
   const showToast = useUIStore((s) => s.showToast);
 
-  const [username, setUsername] = useState(user?.username || "");
-  const [whatsapp, setWhatsapp] = useState(user?.whatsapp || "");
-  const [lang, setLng] = useState<Lang>(user?.language || "en");
   const [results, setResults] = useState<QuizResult[]>([]);
-  const [bookmarks, setBookmarks] = useState<EducationArticle[]>([]);
+  const [loading, setLoading] = useState(true);
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
+  const fileRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!user) return;
+    // جلب البيانات في الخلفية
     (async () => {
-      const rs = await dbService.list<QuizResult>("quizResults");
-      setResults(rs.filter((r) => r.userId === user.uid).sort((a, b) => b.createdAt - a.createdAt));
-      const arts = await dbService.list<EducationArticle>("educationArticles");
-      setBookmarks(arts.filter((a) => (user.bookmarks || []).includes(a.id)));
+      try {
+        const rs = await dbService.list<QuizResult>("quizResults");
+        setResults(rs.filter((r) => r.userId === user.uid).sort((a, b) => b.createdAt - a.createdAt));
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [user]);
 
   if (!user) return null;
 
-  return (
-    <>
-      <div className="space-y-5 animate-fade-in">
-        <header className="flex items-center gap-4 flex-wrap">
-          <Avatar name={user.username} src={user.photoURL} size={80} />
-          <h1 className="text-2xl font-bold">{user.username}</h1>
-          <Button variant="danger" onClick={async () => { await logout(); nav("/auth"); }}>Logout</Button>
-        </header>
-
-        <ContinueLearning userId={user.uid} />
-        <Achievements user={user} results={results} />
-      </div>
-
-      <AvatarPickerModal
-        open={avatarModalOpen}
-        onClose={() => setAvatarModalOpen(false)}
-        onSelect={async (url) => { 
-            await dbService.update("users", user.uid, { photoURL: url });
-            setUser({ ...user, photoURL: url });
-            setAvatarModalOpen(false);
-        }}
-      />
-    </>
-  );
-}
-;
+  async function onSelectAvatar(url: string) {
+    await dbService.update("users", user!.uid, { photoURL: url });
+    setUser({ ...user!, photoURL: url });
+    setAvatarModalOpen(false);
     showToast(t("common.saved"), "success");
   }
 
-  async function onSelectAvatar(url: string) {
-    if (!user) return;
-    setUploading(true);
-    try {
-      await dbService.update("users", user.uid, { photoURL: url });
-      setUser({ ...user, photoURL: url });
-      showToast(t("common.saved"), "success");
-    } catch {
+  return (
+    <div className="space-y-5 animate-fade-in relative">
+      <header className="flex items-center gap-4 flex-wrap">
+        <div className="relative">
+          <Avatar name={user.username} src={user.photoURL} size={80} />
+          <button 
+            onClick={() => setAvatarModalOpen(true)}
+            className="absolute bottom-0 end-0 bg-teal-600 text-white rounded-full p-2 text-xs"
+          >📷</button>
+        </div>
+        <h1 className="text-2xl font-bold">{user.username}</h1>
+        <Button variant="danger" onClick={async () => { await logout(); nav("/auth"); }}>{t("profile.logout")}</Button>
+      </header>
+
+      {loading ? (
+        <div className="text-center py-20">جاري التحميل...</div>
+      ) : (
+        <div className="space-y-5">
+           {/* المحتوى الأساسي هنا */}
+           <div className="grid grid-cols-2 gap-3">
+              <Stat label="XP" value={user.xp || 0} icon={<span>⚡</span>} tone="teal" />
+              <Stat label="Quizzes" value={results.length} icon={<span>📝</span>} tone="blue" />
+           </div>
+        </div>
+      )}
+
+      {/* مودال موحد ومحمي بـ z-index عالي */}
+      {avatarModalOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm p-4">
+             <AvatarPickerModal
+                open={avatarModalOpen}
+                onClose={() => setAvatarModalOpen(false)}
+                onSelect={onSelectAvatar}
+             />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+ {
       showToast(t("chat.uploadFailed"), "error");
     } finally {
       setUploading(false);
