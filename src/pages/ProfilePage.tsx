@@ -6,87 +6,73 @@ import { dbService } from "@/services/db";
 import { storageService } from "@/services/storage";
 import { useAuthStore, useUIStore } from "@/stores";
 import type { EducationArticle, Lang, QuizResult } from "@/types";
-import { useTheme } from "@/theme";
+import { useTheme, type ThemeMode } from "@/theme";
+import { isSoundEnabled, setSoundEnabled, getSfxVolume, setSfxVolume } from "@/utils/sound";
+import { useMusic } from "@/audio/MusicProvider";
+import { ContinueLearning } from "@/components/profile/ContinueLearning";
+import { Achievements } from "@/components/profile/Achievements";
+import { LearningStats } from "@/components/profile/LearningStats";
+import {
+  currentPermission, getPrefs, notifCategories, requestPermission,
+  setPrefs, type NotifCategory,
+} from "@/services/notifications";
 import { cn } from "@/utils/cn";
 
 export default function ProfilePage() {
   const { t, tr, setLang } = useI18n();
   const nav = useNavigate();
   const { mode, setMode } = useTheme();
+  const music = useMusic();
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const logout = useAuthStore((s) => s.logout);
   const showToast = useUIStore((s) => s.showToast);
 
+  const [username, setUsername] = useState(user?.username || "");
+  const [whatsapp, setWhatsapp] = useState(user?.whatsapp || "");
+  const [lang, setLng] = useState<Lang>(user?.language || "en");
   const [results, setResults] = useState<QuizResult[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [bookmarks, setBookmarks] = useState<EducationArticle[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
+  const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
+  const [sfxVol, setSfxVol] = useState(() => getSfxVolume());
+  const [notifPrefs, setNotifPrefsState] = useState(() => getPrefs());
+  const [notifPerm, setNotifPerm] = useState<NotificationPermission>(() => currentPermission());
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const musicFileRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!user) return;
-    // جلب البيانات في الخلفية
     (async () => {
-      try {
-        const rs = await dbService.list<QuizResult>("quizResults");
-        setResults(rs.filter((r) => r.userId === user.uid).sort((a, b) => b.createdAt - a.createdAt));
-      } finally {
-        setLoading(false);
-      }
+      const rs = await dbService.list<QuizResult>("quizResults");
+      setResults(rs.filter((r) => r.userId === user.uid).sort((a, b) => b.createdAt - a.createdAt));
+      const arts = await dbService.list<EducationArticle>("educationArticles");
+      setBookmarks(arts.filter((a) => (user.bookmarks || []).includes(a.id)));
     })();
   }, [user]);
 
   if (!user) return null;
 
-  async function onSelectAvatar(url: string) {
-    await dbService.update("users", user!.uid, { photoURL: url });
-    setUser({ ...user!, photoURL: url });
-    setAvatarModalOpen(false);
+  const totalQ = results.reduce((n, r) => n + r.total, 0);
+  const totalC = results.reduce((n, r) => n + r.score, 0);
+  const acc = totalQ ? Math.round((totalC / totalQ) * 100) : 0;
+
+  async function save() {
+    await dbService.update("users", user!.uid, { username, whatsapp, language: lang });
+    setUser({ ...user!, username, whatsapp, language: lang });
+    setLang(lang);
     showToast(t("common.saved"), "success");
   }
 
-  return (
-    <div className="space-y-5 animate-fade-in relative">
-      <header className="flex items-center gap-4 flex-wrap">
-        <div className="relative">
-          <Avatar name={user.username} src={user.photoURL} size={80} />
-          <button 
-            onClick={() => setAvatarModalOpen(true)}
-            className="absolute bottom-0 end-0 bg-teal-600 text-white rounded-full p-2 text-xs"
-          >📷</button>
-        </div>
-        <h1 className="text-2xl font-bold">{user.username}</h1>
-        <Button variant="danger" onClick={async () => { await logout(); nav("/auth"); }}>{t("profile.logout")}</Button>
-      </header>
-
-      {loading ? (
-        <div className="text-center py-20">جاري التحميل...</div>
-      ) : (
-        <div className="space-y-5">
-           {/* المحتوى الأساسي هنا */}
-           <div className="grid grid-cols-2 gap-3">
-              <Stat label="XP" value={user.xp || 0} icon={<span>⚡</span>} tone="teal" />
-              <Stat label="Quizzes" value={results.length} icon={<span>📝</span>} tone="blue" />
-           </div>
-        </div>
-      )}
-
-      {/* مودال موحد ومحمي بـ z-index عالي */}
-      {avatarModalOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-sm p-4">
-             <AvatarPickerModal
-                open={avatarModalOpen}
-                onClose={() => setAvatarModalOpen(false)}
-                onSelect={onSelectAvatar}
-             />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
- {
+  async function onSelectAvatar(url: string) {
+    if (!user) return;
+    setUploading(true);
+    try {
+      await dbService.update("users", user.uid, { photoURL: url });
+      setUser({ ...user, photoURL: url });
+      showToast(t("common.saved"), "success");
+    } catch {
       showToast(t("chat.uploadFailed"), "error");
     } finally {
       setUploading(false);
@@ -131,6 +117,7 @@ export default function ProfilePage() {
     setResults((rs) => rs.filter((r) => r.id !== id));
     showToast(t("common.saved"), "success");
   }
+
   async function clearHistory() {
     if (!confirm(t("profile.clearHistoryConfirm"))) return;
     for (const r of results) await dbService.remove("quizResults", r.id);
@@ -148,12 +135,14 @@ export default function ProfilePage() {
       showToast(t("notif.push.enabled"), "success");
     }
   }
+
   function toggleCategory(id: NotifCategory) {
     const p = { ...notifPrefs, categories: { ...notifPrefs.categories, [id]: !notifPrefs.categories[id] } };
     setNotifPrefsState(p);
     setPrefs(p);
     showToast(t("notif.savedPrefs"), "success");
   }
+
   function togglePushMaster() {
     if (!notifPrefs.enabled && notifPerm !== "granted") { void enablePush(); return; }
     const p = { ...notifPrefs, enabled: !notifPrefs.enabled };
@@ -163,8 +152,8 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      {/* Header with avatar */}
-      <header className="flex items-center gap-4 flex-wrap">
+      {/* الترويسة النظيفة الموحدة */}
+      <header className="flex items-center gap-4 flex-wrap bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-sm">
         <div className="relative">
           <Avatar name={user.username} src={user.photoURL} size={80} />
           <button
@@ -183,8 +172,6 @@ export default function ProfilePage() {
             <span>{user.email}</span>
             <Badge tone={user.role === "admin" ? "violet" : "gray"}>{user.role}</Badge>
           </div>
-          
-          {/* New dual buttons for Avatar & Local Upload */}
           <div className="mt-3 flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={() => setAvatarModalOpen(true)}>
               👨‍⚕️ Avatar
@@ -199,13 +186,12 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
-        {/* Prominent Logout */}
         <Button variant="danger" onClick={doLogout} icon={<span>⎋</span>}>
           {t("profile.logout")}
         </Button>
       </header>
 
-      {/* Stats */}
+      {/* الإحصائيات الأساسية */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Stat label="XP" value={user.xp || 0} icon={<span>⚡</span>} tone="teal" />
         <Stat label={t("leaderboard.quizzes")} value={results.length} icon={<span>📝</span>} tone="blue" />
@@ -213,13 +199,13 @@ export default function ProfilePage() {
         <Stat label={t("profile.bookmarks")} value={bookmarks.length} icon={<span>🔖</span>} tone="amber" />
       </div>
 
-      {/* Continue learning + achievements + stats */}
+      {/* مكونات المتابعة، الإنجازات، والتحليلات */}
       <ContinueLearning userId={user.uid} />
       <Achievements user={user} results={results} />
       <LearningStats results={results} />
 
       <div className="grid lg:grid-cols-2 gap-4">
-        {/* Edit profile */}
+        {/* تعديل البيانات الشخصية */}
         <Card>
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-slate-100">
             {t("profile.editProfile")}
@@ -234,7 +220,7 @@ export default function ProfilePage() {
           </CardBody>
         </Card>
 
-        {/* Appearance + sound + music */}
+        {/* إعدادات المظهر، الصوت، والموسيقى */}
         <Card>
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-slate-100">
             {t("theme.appearance")}
@@ -283,7 +269,6 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* User music */}
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">🎵 {t("music.title")}</label>
               <button
@@ -315,7 +300,7 @@ export default function ProfilePage() {
         </Card>
       </div>
 
-      {/* Notifications preferences */}
+      {/* تفضيلات الإشعارات */}
       <Card>
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-slate-100">
           🔔 {t("notif.push.title")}
@@ -359,7 +344,7 @@ export default function ProfilePage() {
         </CardBody>
       </Card>
 
-      {/* Bookmarks */}
+      {/* المقالات المحفوظة (Bookmarks) */}
       <Card>
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-slate-100">
           🔖 {t("profile.bookmarks")}
@@ -377,7 +362,7 @@ export default function ProfilePage() {
         </CardBody>
       </Card>
 
-      {/* History */}
+      {/* سجل الاختبارات والتفاعلات (History) */}
       <Card>
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-slate-100 flex items-center justify-between gap-2">
           <span>📊 {t("profile.history")}</span>
@@ -416,14 +401,14 @@ export default function ProfilePage() {
         </div>
       </Card>
 
-      {/* Bottom logout for mobile — duplicate for prominence */}
+      {/* زر تسجيل الخروج الإضافي للشاشات الصغيرة */}
       <div className="lg:hidden">
         <Button variant="danger" className="w-full" size="lg" onClick={doLogout}>
           ⎋ {t("profile.logout")}
         </Button>
       </div>
 
-      {/* Avatar Selection Modal */}
+      {/* نافذة اختيار الأفاتار الطبي */}
       <AvatarPickerModal
         open={avatarModalOpen}
         onClose={() => setAvatarModalOpen(false)}
