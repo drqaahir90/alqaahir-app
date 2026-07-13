@@ -1,10 +1,5 @@
 /**
  * Friend system service.
- *
- * Backward compatible: uses new `friendRequests` and `friendships` Firestore
- * collections. On the AppUser doc we maintain a denormalized `friends: []`
- * array of accepted friend uids for O(1) lookup, but this is optional — the
- * system also works without touching users.
  */
 import { dbService } from "@/services/db";
 import type { AppUser, FriendRequest } from "@/types";
@@ -19,14 +14,12 @@ function pairId(a: string, b: string): string {
 }
 
 export const friendsService = {
-  /** Send a friend request from `from` → `to`. Idempotent. */
   async sendRequest(from: AppUser, toId: string): Promise<void> {
     if (from.uid === toId) return;
     const to = await loadUser(toId);
     if (!to) return;
-    // Already friends?
     if ((from.friends || []).includes(toId)) return;
-    // Existing pending request?
+    
     const existing = await dbService.list<FriendRequest>("friendRequests");
     const dup = existing.find((r) => r.status === "pending" && (
       (r.fromId === from.uid && r.toId === toId) ||
@@ -61,11 +54,12 @@ export const friendsService = {
     await dbService.update<FriendRequest>("friendRequests", req.id, {
       status: "accepted", respondedAt: Date.now(),
     });
-    // Create the friendship doc + update both users' `friends[]` arrays.
+    
     const fid = pairId(req.fromId, req.toId);
     await dbService.set("friendships", fid, {
       id: fid, userIds: [req.fromId, req.toId], createdAt: Date.now(),
     });
+    
     const other = await loadUser(req.fromId);
     if (other) {
       const oFriends = Array.from(new Set([...(other.friends || []), me.uid]));
@@ -74,7 +68,6 @@ export const friendsService = {
     const myFriends = Array.from(new Set([...(me.friends || []), req.fromId]));
     await dbService.update<AppUser>("users", me.uid, { friends: myFriends });
 
-    // Notify the requester that they were accepted.
     await pushNotification({
       kind: "friend_accept",
       audience: "personal",
@@ -104,7 +97,6 @@ export const friendsService = {
     });
   },
 
-  /** Remove a friendship between two users. */
   async removeFriend(me: AppUser, otherId: string): Promise<void> {
     const other = await loadUser(otherId);
     if (other) {
@@ -121,3 +113,4 @@ export const friendsService = {
 
   pairId,
 };
+

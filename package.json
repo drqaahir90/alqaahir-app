@@ -14,7 +14,7 @@
     "@capacitor/cli": "^8.4.1",
     "@capacitor/core": "^8.4.1",
     "clsx": "2.1.1",
-    "firebase": "^12.15.0",
+    "firebase": "^12.16.0",
     "imagekit": "^6.0.0",
     "imagekitio-react": "^4.3.0",
     "react": "19.2.6",

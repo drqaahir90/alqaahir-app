@@ -24,6 +24,7 @@ export default function FriendsPage() {
   const [users, setUsers] = useState<AppUser[]>([]);
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [friendships, setFriendships] = useState<any[]>([]);
   const [q, setQ] = useState("");
 
   useEffect(() => {
@@ -36,15 +37,19 @@ export default function FriendsPage() {
       setChallenges(docs.filter((c) => c.fromId === me.uid || c.toId === me.uid)
         .sort((a, b) => b.createdAt - a.createdAt))
     );
-    return () => { un1(); un2(); };
+    const un3 = dbService.subscribe<any>("friendships", (docs) =>
+      setFriendships(docs.filter((f) => f.userIds && f.userIds.includes(me.uid)))
+    );
+    return () => { un1(); un2(); un3(); };
   }, [me]);
 
   if (!me) return null;
 
-  const friends = useMemo(
-    () => users.filter((u) => (me.friends || []).includes(u.uid)),
-    [users, me.friends]
-  );
+  const friends = useMemo(() => {
+    const friendshipUids = friendships.map((f) => f.userIds?.find((id: string) => id !== me.uid)).filter(Boolean);
+    const combinedUids = Array.from(new Set([...(me.friends || []), ...friendshipUids]));
+    return users.filter((u) => combinedUids.includes(u.uid));
+  }, [users, friendships, me.friends, me.uid]);
 
   const pendingReceived = requests.filter((r) => r.toId === me.uid && r.status === "pending");
   const pendingSent = requests.filter((r) => r.fromId === me.uid && r.status === "pending");
@@ -191,7 +196,9 @@ function DiscoverPanel({
     if (list.length === 0) return null;
     return (
       <Card>
-        <div className="p-3 border-b border-slate-200 dark:border-slate-800 font-semibold text-sm text-slate-800 dark:text-slate-100">{title}</div>
+        <div className="p-3 border-b border-slate-200 dark:border-slate-800 font-semibold text-sm text-slate-600 dark:text-slate-400">
+          {title}
+        </div>
         <CardBody className="space-y-2">
           {list.map((u) => <UserRow key={u.uid} u={u} />)}
         </CardBody>
@@ -264,7 +271,7 @@ function FriendsList({
         <CardBody className="space-y-2">
           <Input placeholder={t("friends.searchUsers")} value={q} onChange={(e) => setQ(e.target.value)} />
           {searchResults.length > 0 && (
-            <div className="border border-slate-200 dark:border-slate-700 rounded-xl divide-y divide-slate-100 dark:divide-slate-800 max-h-72 overflow-y-auto">
+            <div className="border border-slate-200 dark:border-slate-700 rounded-xl divide-y divide-slate-200 dark:divide-slate-700">
               {searchResults.map((u) => (
                 <div key={u.uid} className="flex items-center gap-3 p-2">
                   <Avatar name={u.username} src={u.photoURL} size={36} />
@@ -295,7 +302,7 @@ function FriendsList({
                 </button>
                 <div className="flex-1 min-w-0">
                   <button onClick={() => nav(`/u/${f.uid}`)}
-                    className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 hover:text-teal-600 dark:hover:text-teal-400 text-start">
+                    className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 hover:text-teal-600 dark:hover:text-teal-400">
                     {f.username}
                     {f.isDemo && <Badge tone="violet">{t("admin.demo.badge")}</Badge>}
                   </button>
@@ -318,7 +325,7 @@ function FriendsList({
 }
 
 // ─── Friend requests ──────────────────────────────────────
-function RequestsPanel({ me, received, sent }: { me: AppUser; received: FriendRequest[]; sent: FriendRequest[] }) {
+function RequestsPanel({ me, received, sent }: { me: AppUser; received: FriendRequest[]; sent: FriendRequest[]; }) {
   const { t } = useI18n();
   const showToast = useUIStore((s) => s.showToast);
 
@@ -343,7 +350,9 @@ function RequestsPanel({ me, received, sent }: { me: AppUser; received: FriendRe
           📥 {t("friends.received")} <Badge tone="gray">{received.length}</Badge>
         </div>
         <CardBody>
-          {received.length === 0 ? <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-3">{t("friends.noRequests")}</div> :
+          {received.length === 0 ? (
+            <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">{t("friends.noReceived")}</div>
+          ) : (
             <div className="space-y-2">
               {received.map((r) => (
                 <div key={r.id} className="flex items-center gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60">
@@ -356,7 +365,8 @@ function RequestsPanel({ me, received, sent }: { me: AppUser; received: FriendRe
                   <Button size="sm" variant="ghost" onClick={() => decline(r)}>{t("friends.decline")}</Button>
                 </div>
               ))}
-            </div>}
+            </div>
+          )}
         </CardBody>
       </Card>
 
@@ -365,7 +375,9 @@ function RequestsPanel({ me, received, sent }: { me: AppUser; received: FriendRe
           📤 {t("friends.sent")} <Badge tone="gray">{sent.length}</Badge>
         </div>
         <CardBody>
-          {sent.length === 0 ? <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-3">{t("common.emptyState")}</div> :
+          {sent.length === 0 ? (
+            <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">{t("friends.noSent")}</div>
+          ) : (
             <div className="space-y-2">
               {sent.map((r) => (
                 <div key={r.id} className="flex items-center gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60">
@@ -377,7 +389,8 @@ function RequestsPanel({ me, received, sent }: { me: AppUser; received: FriendRe
                   <Button size="sm" variant="ghost" onClick={() => cancel(r)}>{t("common.cancel")}</Button>
                 </div>
               ))}
-            </div>}
+            </div>
+          )}
         </CardBody>
       </Card>
     </div>
@@ -385,7 +398,7 @@ function RequestsPanel({ me, received, sent }: { me: AppUser; received: FriendRe
 }
 
 // ─── Challenges panel ──────────────────────────────────────
-function ChallengesPanel({ me, active, completed }: { me: AppUser; active: Challenge[]; completed: Challenge[] }) {
+function ChallengesPanel({ me, active, completed }: { me: AppUser; active: Challenge[]; completed: Challenge[]; }) {
   const { t } = useI18n();
   const showToast = useUIStore((s) => s.showToast);
   const [runChallenge, setRunChallenge] = useState<Challenge | null>(null);
@@ -411,7 +424,9 @@ function ChallengesPanel({ me, active, completed }: { me: AppUser; active: Chall
           ⚡ {t("challenge.title")} <Badge tone="gray">{active.length}</Badge>
         </div>
         <CardBody>
-          {active.length === 0 ? <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-3">{t("friends.noChallenges")}</div> :
+          {active.length === 0 ? (
+            <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">{t("friends.noChallenges")}</div>
+          ) : (
             <div className="space-y-2">
               {active.map((c) => {
                 const isFromMe = c.fromId === me.uid;
@@ -449,7 +464,8 @@ function ChallengesPanel({ me, active, completed }: { me: AppUser; active: Chall
                   </div>
                 );
               })}
-            </div>}
+            </div>
+          )}
         </CardBody>
       </Card>
 
@@ -505,7 +521,6 @@ function ChallengesPanel({ me, active, completed }: { me: AppUser; active: Chall
 function NewChallengeModal({ me, opponent, onClose }: { me: AppUser; opponent: AppUser; onClose: () => void }) {
   const { t, tr } = useI18n();
   const showToast = useUIStore((s) => s.showToast);
-  const [type, setType] = useState<import("@/types").ChallengeType>("mcq");
   const [subjectId, setSubjectId] = useState("all");
   const [difficulty, setDifficulty] = useState<Difficulty | "all">("all");
   const [count, setCount] = useState(5);
@@ -519,7 +534,7 @@ function NewChallengeModal({ me, opponent, onClose }: { me: AppUser; opponent: A
 
   async function send() {
     setSending(true);
-    const id = await challengesService.send(me, opponent, { subjectId, difficulty, count, timerSeconds, type });
+    const id = await challengesService.send(me, opponent, { subjectId, difficulty, count, timerSeconds });
     setSending(false);
     if (!id) { showToast(t("challenge.notReady"), "error"); return; }
     showToast(t("common.saved"), "success");
@@ -529,12 +544,6 @@ function NewChallengeModal({ me, opponent, onClose }: { me: AppUser; opponent: A
   return (
     <Modal open onClose={onClose} title={`${t("challenge.new")} · ${opponent.username}`} size="md">
       <div className="space-y-3">
-        <Select label={t("challenge.type")} value={type} onChange={(e) => setType(e.target.value as import("@/types").ChallengeType)}>
-          <option value="mcq">❓ {t("challenge.type.mcq")}</option>
-          <option value="case">📋 {t("challenge.type.case")}</option>
-          <option value="opd">🩺 {t("challenge.type.opd")}</option>
-          <option value="mixed">🎯 {t("challenge.type.mixed")}</option>
-        </Select>
         <Select label={t("challenge.specialty")} value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
           <option value="all">{t("opd.specialtiesAll")}</option>
           {subjects.map((s) => <option key={s.id} value={s.id}>{tr(s.name)}</option>)}
@@ -585,24 +594,9 @@ function ChallengeRunner({ me, challenge, onDone }: { me: AppUser; challenge: Ch
   async function finish() {
     const score = questions.reduce((s, qq) => s + (answers[qq.id] === qq.correctOptionId ? 1 : 0), 0);
     const durationSec = Math.round((Date.now() - start) / 1000);
-    // Persist answers so the result screen can review mistakes
-    await challengesService.submitResult(challenge, me, {
-      score, total: questions.length, durationSec,
-      completedAt: Date.now(),
-      answers,
-    });
-    // Use the XP calculator so the reward is explained
-    const { computeChallengeXp } = await import("@/services/xp");
-    // Detect winner from the (now fresh) challenge doc
-    const fresh = await dbService.get<Challenge>("challenges", challenge.id);
-    const won = fresh?.winnerId === me.uid;
-    const tied = !!fresh && !fresh.winnerId && fresh.status === "completed";
-    const bd = computeChallengeXp({
-      score, total: questions.length, won, tied,
-      difficulty: (challenge.difficulty as "easy" | "medium" | "hard" | "mixed") || "mixed",
-    });
-    await dbService.update("users", me.uid, { xp: (me.xp || 0) + bd.total });
-    showToast(`+${bd.total} XP`, "success");
+    await challengesService.submitResult(challenge, me, { score, total: questions.length, durationSec, completedAt: Date.now() });
+    await dbService.update("users", me.uid, { xp: (me.xp || 0) + score * 10 });
+    showToast(`+${score * 10} XP`, "success");
     playSound(score === questions.length ? "achievement" : "levelComplete");
     onDone();
   }
@@ -646,27 +640,35 @@ function ChallengeRunner({ me, challenge, onDone }: { me: AppUser; challenge: Ch
 function ChallengeResultModal({ c, me, onClose }: { c: Challenge; me: AppUser; onClose: () => void }) {
   const { t } = useI18n();
   const isFromMe = c.fromId === me.uid;
+  const myRes = c.results?.[me.uid];
+  const opponentId = isFromMe ? c.toId : c.fromId;
+  const opRes = c.results?.[opponentId];
   const opponentName = isFromMe ? c.toName : c.fromName;
-  const [mcqs, setMcqs] = useState<import("@/types").MCQ[]>([]);
-
-  useEffect(() => {
-    // Only MCQ challenges have reviewable mistakes today
-    if ((c.type || "mcq") !== "mcq") return;
-    (async () => {
-      const all = await dbService.list<import("@/types").MCQ>("mcqs");
-      setMcqs(all.filter((m) => c.questionIds.includes(m.id)));
-    })();
-  }, [c.id, c.type, c.questionIds]);
-
+  const won = c.winnerId === me.uid;
+  const tie = !c.winnerId;
   return (
-    <Modal open onClose={onClose} title={`${t("challenge.result")} · ${opponentName}`} size="lg">
-      <ChallengeResult
-        challenge={c} me={me} mcqs={mcqs}
-        xpBreakdown={null} previousXp={me.xp || 0}
-        onRetry={onClose} onContinue={onClose} onReplay={onClose}
-      />
+    <Modal open onClose={onClose} title={`${t("challenge.result")} · ${opponentName}`} size="md">
+      <div className="space-y-3">
+        <div className="text-center">
+          <div className="text-4xl mb-1">{tie ? "🤝" : won ? "🏆" : "🥈"}</div>
+          <Badge tone={tie ? "gray" : won ? "green" : "red"}>
+            {tie ? t("challenge.tie") : won ? t("challenge.winner") : t("challenge.loser")}
+          </Badge>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+            <div className="text-xs text-slate-500 dark:text-slate-400">{t("chat.you")}</div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{myRes?.score ?? 0}/{myRes?.total ?? c.count}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">{myRes ? Math.round(myRes.score / Math.max(myRes.total, 1) * 100) : 0}% · {myRes?.durationSec || 0}s</div>
+          </div>
+          <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+            <div className="text-xs text-slate-500 dark:text-slate-400">{opponentName}</div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{opRes?.score ?? 0}/{opRes?.total ?? c.count}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">{opRes ? Math.round(opRes.score / Math.max(opRes.total, 1) * 100) : 0}% · {opRes?.durationSec || 0}s</div>
+          </div>
+        </div>
+      </div>
     </Modal>
   );
 }
 
-// Friend chat lives at /friends/chat/:uid — see src/pages/FriendChat.tsx.

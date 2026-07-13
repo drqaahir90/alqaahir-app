@@ -1,4 +1,4 @@
-import { type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes, useEffect } from "react";
+import { type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes, useEffect, useState } from "react";
 import { cn } from "@/utils/cn";
 import { playSound } from "@/utils/sound";
 
@@ -195,10 +195,45 @@ export function Avatar({
     <div
       style={{ ...dim, fontSize: size * 0.36 }}
       className={cn(
-        "rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 grid place-items-center text-white font-bold uppercase select-none shrink-0",
+        "rounded-full bg-slate-200 dark:bg-slate-700 grid place-items-center text-slate-500 dark:text-slate-400 font-bold uppercase select-none shrink-0",
         className,
       )}
     >{initials}</div>
+  );
+}
+
+// ─────────── Avatar Picker Modal (النافذة الجديدة لاختيار الأطباء) ───────────
+export function AvatarPickerModal({ open, onClose, onSelect }: { open: boolean; onClose: () => void; onSelect: (url: string) => void }) {
+  // مجموعة من الروابط الجاهزة لشخصيات طبية احترافية
+  const doctorAvatars = [
+    "https://api.dicebear.com/7.x/avataaars/svg?seed=DoctorMale1&top=shortHair&clothing=blazerAndShirt&accessories=prescription02", // طبيب مع نظارة
+    "https://api.dicebear.com/7.x/avataaars/svg?seed=DoctorFemale1&top=longHair&clothing=blazerAndShirt&accessories=prescription01", // طبيبة 
+    "https://api.dicebear.com/7.x/avataaars/svg?seed=SurgeonMale&top=shortHair&clothing=graphicShirt&clothingColor=blue02", // دكتور سكراب أزرق
+    "https://api.dicebear.com/7.x/avataaars/svg?seed=NurseFemale&top=hijab&clothing=graphicShirt&clothingColor=green", // دكتورة محجبة سكراب أخضر
+    "https://api.dicebear.com/7.x/avataaars/svg?seed=DoctorMale2&top=dreads&clothing=blazerAndSweater", // طبيب معطف شتوي
+    "https://api.dicebear.com/7.x/avataaars/svg?seed=SurgeonFemale2&top=bob&clothing=overall&clothingColor=pink" // دكتورة سكراب وردي
+  ];
+
+  return (
+    <Modal open={open} onClose={onClose} title="Select Your Medical Avatar">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        {doctorAvatars.map((url, index) => (
+          <button
+            key={index}
+            onClick={() => {
+              onSelect(url);
+              onClose();
+            }}
+            className="flex items-center justify-center p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-teal-500 dark:hover:border-teal-500 transition-all bg-slate-50 dark:bg-slate-800/50 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+          >
+            <img src={url} alt={`Doctor Avatar ${index + 1}`} className="w-20 h-20 rounded-full object-cover bg-white" />
+          </button>
+        ))}
+      </div>
+      <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-5">
+        Choose an avatar that represents your medical specialty.
+      </p>
+    </Modal>
   );
 }
 

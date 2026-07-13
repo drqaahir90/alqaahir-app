@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Avatar, Badge, Button, Card, CardBody, EmptyState, Input, Select, Stat } from "@/components/ui";
+import { Avatar, AvatarPickerModal, Badge, Button, Card, CardBody, EmptyState, Input, Select, Stat } from "@/components/ui";
 import { LANGS, useI18n } from "@/i18n";
 import { dbService } from "@/services/db";
 import { storageService } from "@/services/storage";
@@ -34,6 +34,7 @@ export default function ProfilePage() {
   const [results, setResults] = useState<QuizResult[]>([]);
   const [bookmarks, setBookmarks] = useState<EducationArticle[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
   const [sfxVol, setSfxVol] = useState(() => getSfxVolume());
   const [notifPrefs, setNotifPrefsState] = useState(() => getPrefs());
@@ -62,6 +63,20 @@ export default function ProfilePage() {
     setUser({ ...user!, username, whatsapp, language: lang });
     setLang(lang);
     showToast(t("common.saved"), "success");
+  }
+
+  async function onSelectAvatar(url: string) {
+    if (!user) return;
+    setUploading(true);
+    try {
+      await dbService.update("users", user.uid, { photoURL: url });
+      setUser({ ...user, photoURL: url });
+      showToast(t("common.saved"), "success");
+    } catch {
+      showToast(t("chat.uploadFailed"), "error");
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function onPickPhoto(files: FileList | null) {
@@ -139,7 +154,7 @@ export default function ProfilePage() {
         <div className="relative">
           <Avatar name={user.username} src={user.photoURL} size={80} />
           <button
-            onClick={() => fileRef.current?.click()}
+            onClick={() => setAvatarModalOpen(true)}
             disabled={uploading}
             className="absolute bottom-0 end-0 h-8 w-8 rounded-full bg-teal-600 hover:bg-teal-700 text-white grid place-items-center shadow-lg border-2 border-white dark:border-slate-900"
             title={t("profile.changePhoto")}
@@ -155,7 +170,7 @@ export default function ProfilePage() {
             <Badge tone={user.role === "admin" ? "violet" : "gray"}>{user.role}</Badge>
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
+            <Button size="sm" variant="outline" onClick={() => setAvatarModalOpen(true)}>
               📷 {user.photoURL ? t("profile.changePhoto") : t("profile.uploadPhoto")}
             </Button>
             {user.photoURL && (
@@ -388,6 +403,13 @@ export default function ProfilePage() {
           ⎋ {t("profile.logout")}
         </Button>
       </div>
+
+      {/* Avatar Selection Modal */}
+      <AvatarPickerModal
+        open={avatarModalOpen}
+        onClose={() => setAvatarModalOpen(false)}
+        onSelect={onSelectAvatar}
+      />
     </div>
   );
 }
