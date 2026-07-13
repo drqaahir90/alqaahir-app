@@ -149,7 +149,6 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      {/* Header with avatar */}
       <header className="flex items-center gap-4 flex-wrap">
         <div className="relative">
           <Avatar name={user.username} src={user.photoURL} size={80} />
@@ -169,8 +168,6 @@ export default function ProfilePage() {
             <span>{user.email}</span>
             <Badge tone={user.role === "admin" ? "violet" : "gray"}>{user.role}</Badge>
           </div>
-          
-          {/* New dual buttons for Avatar & Local Upload */}
           <div className="mt-3 flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={() => setAvatarModalOpen(true)}>
               👨‍⚕️ Avatar
@@ -185,27 +182,20 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
-        {/* Prominent Logout */}
         <Button variant="danger" onClick={doLogout} icon={<span>⎋</span>}>
           {t("profile.logout")}
         </Button>
       </header>
-
-      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Stat label="XP" value={user.xp || 0} icon={<span>⚡</span>} tone="teal" />
         <Stat label={t("leaderboard.quizzes")} value={results.length} icon={<span>📝</span>} tone="blue" />
         <Stat label={t("leaderboard.accuracy")} value={`${acc}%`} icon={<span>🎯</span>} tone="green" />
         <Stat label={t("profile.bookmarks")} value={bookmarks.length} icon={<span>🔖</span>} tone="amber" />
       </div>
-
-      {/* Continue learning + achievements + stats */}
       <ContinueLearning userId={user.uid} />
       <Achievements user={user} results={results} />
       <LearningStats results={results} />
-
       <div className="grid lg:grid-cols-2 gap-4">
-        {/* Edit profile */}
         <Card>
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-slate-100">
             {t("profile.editProfile")}
@@ -219,8 +209,6 @@ export default function ProfilePage() {
             <div className="flex justify-end"><Button onClick={save}>{t("common.save")}</Button></div>
           </CardBody>
         </Card>
-
-        {/* Appearance + sound + music */}
         <Card>
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-slate-100">
             {t("theme.appearance")}
@@ -243,7 +231,6 @@ export default function ProfilePage() {
                 ))}
               </div>
             </div>
-
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t("sound.title")}</label>
               <button
@@ -268,8 +255,6 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
-
-            {/* User music */}
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">🎵 {t("music.title")}</label>
               <button
@@ -300,8 +285,6 @@ export default function ProfilePage() {
           </CardBody>
         </Card>
       </div>
-
-      {/* Notifications preferences */}
       <Card>
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-slate-100">
           🔔 {t("notif.push.title")}
@@ -327,7 +310,6 @@ export default function ProfilePage() {
               </span>
             </button>
           )}
-
           {notifPrefs.enabled && (
             <div>
               <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t("notif.categories")}</div>
@@ -344,8 +326,6 @@ export default function ProfilePage() {
           )}
         </CardBody>
       </Card>
-
-      {/* Bookmarks */}
       <Card>
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-slate-100">
           🔖 {t("profile.bookmarks")}
@@ -362,8 +342,6 @@ export default function ProfilePage() {
             </ul>}
         </CardBody>
       </Card>
-
-      {/* History */}
       <Card>
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-slate-100 flex items-center justify-between gap-2">
           <span>📊 {t("profile.history")}</span>
@@ -401,7 +379,16 @@ export default function ProfilePage() {
           </table>
         </div>
       </Card>
-
-      {/* Bottom logout for mobile — duplicate for prominence */}
       <div className="lg:hidden">
-        <Button variant="danger" classNa
+        <Button variant="danger" className="w-full" size="lg" onClick={doLogout}>
+          ⎋ {t("profile.logout")}
+        </Button>
+      </div>
+      <AvatarPickerModal
+        open={avatarModalOpen}
+        onClose={() => setAvatarModalOpen(false)}
+        onSelect={onSelectAvatar}
+      />
+    </div>
+  );
+}
