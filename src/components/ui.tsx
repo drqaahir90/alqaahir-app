@@ -1,6 +1,7 @@
 import { type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes, useEffect } from "react";
 import { cn } from "@/utils/cn";
 import { playSound } from "@/utils/sound";
+import { useUIStore } from "@/stores";
 
 // ─────────── Button ───────────
 type BtnVariant = "primary" | "secondary" | "ghost" | "outline" | "danger" | "success";
@@ -121,7 +122,7 @@ export function Modal({ open, onClose, title, children, size = "md" }: { open: b
   if (!open) return null;
   const sizes = { sm: "max-w-sm", md: "max-w-lg", lg: "max-w-2xl", xl: "max-w-4xl" };
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 animate-fade-in">
       <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
       <div className={cn("relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-slide-up", sizes[size])}>
         {title && <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between"><h3 className="font-semibold text-slate-900 dark:text-slate-100">{title}</h3><button onClick={onClose} className="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 text-2xl leading-none">×</button></div>}
@@ -203,7 +204,6 @@ export function Avatar({
 }
 
 // ─────────── Toast host ───────────
-import { useUIStore } from "@/stores";
 export function ToastHost() {
   const toast = useUIStore((s) => s.toast);
   if (!toast) return null;
@@ -213,7 +213,7 @@ export function ToastHost() {
     error: "bg-rose-600 text-white",
   };
   return (
-    <div className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[60] animate-slide-up">
+    <div className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[2000] animate-slide-up">
       <div className={cn("px-4 py-2 rounded-full shadow-lg text-sm font-medium", styles[toast.kind])}>{toast.msg}</div>
     </div>
   );
@@ -251,7 +251,7 @@ export function AvatarPickerModal({ open, onClose, onSelect }: { open: boolean; 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4 animate-fade-in">
       <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh] animate-slide-up overflow-hidden">
         
