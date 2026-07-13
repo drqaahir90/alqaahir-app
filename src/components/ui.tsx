@@ -1,4 +1,4 @@
-import { type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes, useEffect, useState } from "react";
+import { type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes, useEffect } from "react";
 import { cn } from "@/utils/cn";
 import { playSound } from "@/utils/sound";
 
@@ -195,45 +195,10 @@ export function Avatar({
     <div
       style={{ ...dim, fontSize: size * 0.36 }}
       className={cn(
-        "rounded-full bg-slate-200 dark:bg-slate-700 grid place-items-center text-slate-500 dark:text-slate-400 font-bold uppercase select-none shrink-0",
+        "rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 grid place-items-center text-white font-bold uppercase select-none shrink-0",
         className,
       )}
     >{initials}</div>
-  );
-}
-
-// ─────────── Avatar Picker Modal (النافذة الجديدة لاختيار الأطباء) ───────────
-export function AvatarPickerModal({ open, onClose, onSelect }: { open: boolean; onClose: () => void; onSelect: (url: string) => void }) {
-  // مجموعة من الروابط الجاهزة لشخصيات طبية احترافية
-  const doctorAvatars = [
-    "https://api.dicebear.com/7.x/avataaars/svg?seed=DoctorMale1&top=shortHair&clothing=blazerAndShirt&accessories=prescription02", // طبيب مع نظارة
-    "https://api.dicebear.com/7.x/avataaars/svg?seed=DoctorFemale1&top=longHair&clothing=blazerAndShirt&accessories=prescription01", // طبيبة 
-    "https://api.dicebear.com/7.x/avataaars/svg?seed=SurgeonMale&top=shortHair&clothing=graphicShirt&clothingColor=blue02", // دكتور سكراب أزرق
-    "https://api.dicebear.com/7.x/avataaars/svg?seed=NurseFemale&top=hijab&clothing=graphicShirt&clothingColor=green", // دكتورة محجبة سكراب أخضر
-    "https://api.dicebear.com/7.x/avataaars/svg?seed=DoctorMale2&top=dreads&clothing=blazerAndSweater", // طبيب معطف شتوي
-    "https://api.dicebear.com/7.x/avataaars/svg?seed=SurgeonFemale2&top=bob&clothing=overall&clothingColor=pink" // دكتورة سكراب وردي
-  ];
-
-  return (
-    <Modal open={open} onClose={onClose} title="Select Your Medical Avatar">
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        {doctorAvatars.map((url, index) => (
-          <button
-            key={index}
-            onClick={() => {
-              onSelect(url);
-              onClose();
-            }}
-            className="flex items-center justify-center p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-teal-500 dark:hover:border-teal-500 transition-all bg-slate-50 dark:bg-slate-800/50 hover:bg-teal-50 dark:hover:bg-teal-900/20"
-          >
-            <img src={url} alt={`Doctor Avatar ${index + 1}`} className="w-20 h-20 rounded-full object-cover bg-white" />
-          </button>
-        ))}
-      </div>
-      <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-5">
-        Choose an avatar that represents your medical specialty.
-      </p>
-    </Modal>
   );
 }
 
@@ -253,3 +218,69 @@ export function ToastHost() {
     </div>
   );
 }
+
+// ─────────── Avatar Picker Modal ───────────
+const MEDICAL_AVATARS = [
+  "https://api.dicebear.com/9.x/avataaars/svg?seed=DrAli&clothing=blazerAndShirt&hair=shortHairShortWaved&accessories=prescription02",
+  "https://api.dicebear.com/9.x/avataaars/svg?seed=DrSara&clothing=blazerAndShirt&hair=longHairStraight&accessories=round",
+  "https://api.dicebear.com/9.x/avataaars/svg?seed=DrOmar&clothing=blazerAndShirt&hair=shortHairTheCaesar&facialHair=beardLight",
+  "https://api.dicebear.com/9.x/avataaars/svg?seed=DrFatima&clothing=blazerAndShirt&hair=hijab&clothingColor=blue03",
+  "https://api.dicebear.com/9.x/avataaars/svg?seed=SurgAhmad&clothing=graphicShirt&clothingColor=blue02&hair=shortHairShortFlat",
+  "https://api.dicebear.com/9.x/avataaars/svg?seed=SurgNour&clothing=graphicShirt&clothingColor=green&hair=shortHairShaggyMullet",
+  "https://api.iconify.design/fluent-emoji/anatomical-heart.svg",
+  "https://api.iconify.design/fluent-emoji/brain.svg",
+  "https://api.iconify.design/fluent-emoji/tooth.svg",
+  "https://api.iconify.design/fluent-emoji/bone.svg",
+  "https://api.iconify.design/fluent-emoji/eye.svg",
+  "https://api.iconify.design/fluent-emoji/lungs.svg",
+  "https://api.iconify.design/fluent-emoji/microbe.svg",
+  "https://api.iconify.design/fluent-emoji/stethoscope.svg",
+  "https://api.iconify.design/fluent-emoji/syringe.svg",
+  "https://api.iconify.design/fluent-emoji/pill.svg",
+  "https://api.iconify.design/fluent-emoji/microscope.svg",
+  "https://api.iconify.design/fluent-emoji/dna.svg"
+];
+
+export function AvatarPickerModal({ open, onClose, onSelect }: { open: boolean; onClose: () => void; onSelect: (url: string) => void }) {
+  useEffect(() => {
+    if (open) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = 'unset';
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
+      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh] animate-slide-up overflow-hidden">
+        
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/95 shrink-0 z-10">
+          <div>
+            <h3 className="text-xl font-bold text-white">Medical Avatar</h3>
+            <p className="text-xs text-slate-400 mt-1">Choose your specialty or uniform</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-500 hover:text-white text-slate-300 flex items-center justify-center transition-colors shadow-sm">✕</button>
+        </div>
+
+        {/* Scrollable Grid */}
+        <div className="p-5 overflow-y-auto">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+            {MEDICAL_AVATARS.map((url, i) => (
+              <button
+                key={i}
+                onClick={() => { onSelect(url); onClose(); }}
+                className="aspect-square rounded-xl bg-slate-800 border-2 border-slate-700 hover:border-teal-500 hover:bg-slate-700 transition-all flex items-center justify-center p-3 group relative overflow-hidden"
+              >
+                <img src={url} alt={`Avatar ${i}`} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300 drop-shadow-lg" loading="lazy" />
+              </button>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
