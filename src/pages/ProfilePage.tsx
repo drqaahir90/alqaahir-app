@@ -12,10 +12,7 @@ import { useMusic } from "@/audio/MusicProvider";
 import { ContinueLearning } from "@/components/profile/ContinueLearning";
 import { Achievements } from "@/components/profile/Achievements";
 import { LearningStats } from "@/components/profile/LearningStats";
-import {
-  currentPermission, getPrefs, notifCategories, requestPermission,
-  setPrefs, type NotifCategory,
-} from "@/services/notifications";
+import { currentPermission, getPrefs, notifCategories, requestPermission, setPrefs, type NotifCategory } from "@/services/notifications";
 import { cn } from "@/utils/cn";
 
 export default function ProfilePage() {
@@ -33,14 +30,7 @@ export default function ProfilePage() {
   const [lang, setLng] = useState<Lang>(user?.language || "en");
   const [results, setResults] = useState<QuizResult[]>([]);
   const [bookmarks, setBookmarks] = useState<EducationArticle[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
-  const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
-  const [sfxVol, setSfxVol] = useState(() => getSfxVolume());
-  const [notifPrefs, setNotifPrefsState] = useState(() => getPrefs());
-  const [notifPerm, setNotifPerm] = useState<NotificationPermission>(() => currentPermission());
-  const fileRef = useRef<HTMLInputElement | null>(null);
-  const musicFileRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -54,14 +44,32 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
-  const totalQ = results.reduce((n, r) => n + r.total, 0);
-  const totalC = results.reduce((n, r) => n + r.score, 0);
-  const acc = totalQ ? Math.round((totalC / totalQ) * 100) : 0;
+  return (
+    <>
+      <div className="space-y-5 animate-fade-in">
+        <header className="flex items-center gap-4 flex-wrap">
+          <Avatar name={user.username} src={user.photoURL} size={80} />
+          <h1 className="text-2xl font-bold">{user.username}</h1>
+          <Button variant="danger" onClick={async () => { await logout(); nav("/auth"); }}>Logout</Button>
+        </header>
 
-  async function save() {
-    await dbService.update("users", user!.uid, { username, whatsapp, language: lang });
-    setUser({ ...user!, username, whatsapp, language: lang });
-    setLang(lang);
+        <ContinueLearning userId={user.uid} />
+        <Achievements user={user} results={results} />
+      </div>
+
+      <AvatarPickerModal
+        open={avatarModalOpen}
+        onClose={() => setAvatarModalOpen(false)}
+        onSelect={async (url) => { 
+            await dbService.update("users", user.uid, { photoURL: url });
+            setUser({ ...user, photoURL: url });
+            setAvatarModalOpen(false);
+        }}
+      />
+    </>
+  );
+}
+;
     showToast(t("common.saved"), "success");
   }
 
@@ -149,6 +157,7 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-5 animate-fade-in">
+      {/* Header with avatar */}
       <header className="flex items-center gap-4 flex-wrap">
         <div className="relative">
           <Avatar name={user.username} src={user.photoURL} size={80} />
@@ -168,6 +177,8 @@ export default function ProfilePage() {
             <span>{user.email}</span>
             <Badge tone={user.role === "admin" ? "violet" : "gray"}>{user.role}</Badge>
           </div>
+          
+          {/* New dual buttons for Avatar & Local Upload */}
           <div className="mt-3 flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={() => setAvatarModalOpen(true)}>
               👨‍⚕️ Avatar
@@ -182,20 +193,27 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
+        {/* Prominent Logout */}
         <Button variant="danger" onClick={doLogout} icon={<span>⎋</span>}>
           {t("profile.logout")}
         </Button>
       </header>
+
+      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Stat label="XP" value={user.xp || 0} icon={<span>⚡</span>} tone="teal" />
         <Stat label={t("leaderboard.quizzes")} value={results.length} icon={<span>📝</span>} tone="blue" />
         <Stat label={t("leaderboard.accuracy")} value={`${acc}%`} icon={<span>🎯</span>} tone="green" />
         <Stat label={t("profile.bookmarks")} value={bookmarks.length} icon={<span>🔖</span>} tone="amber" />
       </div>
+
+      {/* Continue learning + achievements + stats */}
       <ContinueLearning userId={user.uid} />
       <Achievements user={user} results={results} />
       <LearningStats results={results} />
+
       <div className="grid lg:grid-cols-2 gap-4">
+        {/* Edit profile */}
         <Card>
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-slate-100">
             {t("profile.editProfile")}
@@ -209,6 +227,8 @@ export default function ProfilePage() {
             <div className="flex justify-end"><Button onClick={save}>{t("common.save")}</Button></div>
           </CardBody>
         </Card>
+
+        {/* Appearance + sound + music */}
         <Card>
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-slate-100">
             {t("theme.appearance")}
@@ -231,6 +251,7 @@ export default function ProfilePage() {
                 ))}
               </div>
             </div>
+
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t("sound.title")}</label>
               <button
@@ -255,6 +276,8 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
+
+            {/* User music */}
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">🎵 {t("music.title")}</label>
               <button
@@ -285,6 +308,8 @@ export default function ProfilePage() {
           </CardBody>
         </Card>
       </div>
+
+      {/* Notifications preferences */}
       <Card>
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-slate-100">
           🔔 {t("notif.push.title")}
@@ -310,6 +335,7 @@ export default function ProfilePage() {
               </span>
             </button>
           )}
+
           {notifPrefs.enabled && (
             <div>
               <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t("notif.categories")}</div>
@@ -326,6 +352,8 @@ export default function ProfilePage() {
           )}
         </CardBody>
       </Card>
+
+      {/* Bookmarks */}
       <Card>
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-slate-100">
           🔖 {t("profile.bookmarks")}
@@ -342,6 +370,8 @@ export default function ProfilePage() {
             </ul>}
         </CardBody>
       </Card>
+
+      {/* History */}
       <Card>
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-slate-100 flex items-center justify-between gap-2">
           <span>📊 {t("profile.history")}</span>
@@ -379,11 +409,15 @@ export default function ProfilePage() {
           </table>
         </div>
       </Card>
+
+      {/* Bottom logout for mobile — duplicate for prominence */}
       <div className="lg:hidden">
         <Button variant="danger" className="w-full" size="lg" onClick={doLogout}>
           ⎋ {t("profile.logout")}
         </Button>
       </div>
+
+      {/* Avatar Selection Modal */}
       <AvatarPickerModal
         open={avatarModalOpen}
         onClose={() => setAvatarModalOpen(false)}
